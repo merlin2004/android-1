@@ -44,7 +44,6 @@ import com.owncloud.android.utils.FileStorageUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
@@ -149,7 +148,7 @@ public class LogHistoryActivity extends ToolbarActivity {
             emailAddress = "";
         }
         
-        ArrayList<Uri> uris = new ArrayList<Uri>();
+        ArrayList<Uri> uris = new ArrayList<>();
 
         // Convert from paths to Android friendly Parcelable Uri's
         for (String file : Log_OC.getLogFileNames()) {
@@ -194,7 +193,7 @@ public class LogHistoryActivity extends ToolbarActivity {
 
         public LoadingLogTask(TextView logTV){
             // Use of a WeakReference to ensure the TextView can be garbage collected
-            textViewReference  = new WeakReference<TextView>(logTV);
+            textViewReference  = new WeakReference<>(logTV);
         }
 
         protected String doInBackground(String... args) {
