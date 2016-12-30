@@ -261,8 +261,7 @@ public class SynchronizeFolderOperation extends SyncOperation {
      *
      * @param folderAndFiles Remote folder and children files in Folder
      */
-    private void synchronizeData(ArrayList<Object> folderAndFiles)
-            throws OperationCancelledException {
+    private void synchronizeData(ArrayList<Object> folderAndFiles) throws OperationCancelledException {
         FileDataStorageManager storageManager = getStorageManager();
         
         // parse data from remote folder
@@ -296,79 +295,86 @@ public class SynchronizeFolderOperation extends SyncOperation {
             r = (RemoteFile) folderAndFiles.get(i);
             remoteFile = FileStorageUtils.fillOCFile(r);
 
-            /// new OCFile instance to merge fresh data from server with local state
-            updatedFile = FileStorageUtils.fillOCFile(r);
-            updatedFile.setParentId(mLocalFolder.getFileId());
-
             /// retrieve local data for the read file
             //  localFile = mStorageManager.getFileByPath(remoteFile.getRemotePath());
             localFile = localFilesMap.remove(remoteFile.getRemotePath());
 
+            /// new OCFile instance to merge fresh data from server with local state
+            updatedFile = FileStorageUtils.fillOCFile(r);
+            updatedFile.setParentId(mLocalFolder.getFileId());
+
             /// add to updatedFile data about LOCAL STATE (not existing in server)
-            updatedFile.setLastSyncDateForProperties(mCurrentSyncTime);
-            if (localFile != null) {
-                updatedFile.setFileId(localFile.getFileId());
-                updatedFile.setFavorite(localFile.isFavorite());
-                updatedFile.setLastSyncDateForData(localFile.getLastSyncDateForData());
-                updatedFile.setModificationTimestampAtLastSyncForData(
-                        localFile.getModificationTimestampAtLastSyncForData()
-                );
-                updatedFile.setStoragePath(localFile.getStoragePath());
-                // eTag will not be updated unless file CONTENTS are synchronized
-                updatedFile.setEtag(localFile.getEtag());
-                if (updatedFile.isFolder()) {
-                    updatedFile.setFileLength(localFile.getFileLength());
-                        // TODO move operations about size of folders to FileContentProvider
-                } else if (mRemoteFolderChanged && MimeTypeUtil.isImage(remoteFile) &&
-                        remoteFile.getModificationTimestamp() !=
-                                localFile.getModificationTimestamp()) {
-                    updatedFile.setNeedsUpdateThumbnail(true);
-                    Log.d(TAG, "Image " + remoteFile.getFileName() + " updated on the server");
-                }
-                updatedFile.setPublicLink(localFile.getPublicLink());
-                updatedFile.setShareViaLink(localFile.isSharedViaLink());
-                updatedFile.setShareWithSharee(localFile.isSharedWithSharee());
-                updatedFile.setEtagInConflict(localFile.getEtagInConflict());
-            } else {
-                // remote eTag will not be updated unless file CONTENTS are synchronized
-                updatedFile.setEtag("");
-            }
+            updateLocalStateData(remoteFile, localFile, updatedFile);
 
             /// check and fix, if needed, local storage path
             searchForLocalFileInDefaultPath(updatedFile);
             
             /// classify file to sync/download contents later
-            if (remoteFile.isFolder()) {
-                /// to download children files recursively
-                synchronized (mCancellationRequested) {
-                    if (mCancellationRequested.get()) {
-                        throw new OperationCancelledException();
-                    }
-                    startSyncFolderOperation(remoteFile.getRemotePath());
-                }
-
-            } else {
-                /// prepare content synchronization for files (any file, not just favorites)
-                SynchronizeFileOperation operation = new SynchronizeFileOperation(
-                        localFile,
-                        remoteFile,
-                        mAccount,
-                        true,
-                        mContext
-                    );
-                mFilesToSyncContents.add(operation);
-                
-            }
+            classifyFileForLaterSyncOrDownload(remoteFile, localFile);
 
             updatedFiles.add(updatedFile);
         }
 
         // save updated contents in local database
         storageManager.saveFolder(remoteFolder, updatedFiles, localFilesMap.values());
-
     }
-    
-    
+
+    private void updateLocalStateData(OCFile remoteFile, OCFile localFile, OCFile updatedFile) {
+        updatedFile.setLastSyncDateForProperties(mCurrentSyncTime);
+        if (localFile != null) {
+            updatedFile.setFileId(localFile.getFileId());
+            updatedFile.setFavorite(localFile.isFavorite());
+            updatedFile.setLastSyncDateForData(localFile.getLastSyncDateForData());
+            updatedFile.setModificationTimestampAtLastSyncForData(
+                    localFile.getModificationTimestampAtLastSyncForData()
+            );
+            updatedFile.setStoragePath(localFile.getStoragePath());
+            // eTag will not be updated unless file CONTENTS are synchronized
+            updatedFile.setEtag(localFile.getEtag());
+            if (updatedFile.isFolder()) {
+                updatedFile.setFileLength(localFile.getFileLength());
+                    // TODO move operations about size of folders to FileContentProvider
+            } else if (mRemoteFolderChanged && MimeTypeUtil.isImage(remoteFile) &&
+                    remoteFile.getModificationTimestamp() !=
+                            localFile.getModificationTimestamp()) {
+                updatedFile.setNeedsUpdateThumbnail(true);
+                Log.d(TAG, "Image " + remoteFile.getFileName() + " updated on the server");
+            }
+            updatedFile.setPublicLink(localFile.getPublicLink());
+            updatedFile.setShareViaLink(localFile.isSharedViaLink());
+            updatedFile.setShareWithSharee(localFile.isSharedWithSharee());
+            updatedFile.setEtagInConflict(localFile.getEtagInConflict());
+        } else {
+            // remote eTag will not be updated unless file CONTENTS are synchronized
+            updatedFile.setEtag("");
+        }
+    }
+
+    private void classifyFileForLaterSyncOrDownload(OCFile remoteFile, OCFile localFile)
+            throws OperationCancelledException {
+        if (remoteFile.isFolder()) {
+            /// to download children files recursively
+            synchronized (mCancellationRequested) {
+                if (mCancellationRequested.get()) {
+                    throw new OperationCancelledException();
+                }
+                startSyncFolderOperation(remoteFile.getRemotePath());
+            }
+
+        } else {
+            /// prepare content synchronization for files (any file, not just favorites)
+            SynchronizeFileOperation operation = new SynchronizeFileOperation(
+                    localFile,
+                    remoteFile,
+                    mAccount,
+                    true,
+                    mContext
+                );
+            mFilesToSyncContents.add(operation);
+        }
+    }
+
+
     private void prepareOpsFromLocalKnowledge() throws OperationCancelledException {
         List<OCFile> children = getStorageManager().getFolderContent(mLocalFolder, false);
         for (OCFile child : children) {

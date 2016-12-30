@@ -190,6 +190,8 @@ public class ConnectivityActionReceiver extends BroadcastReceiver {
         }
     }
 
+    /**
+     *
     private void wifiDisconnected() {
         // TODO something smart
 
@@ -201,7 +203,7 @@ public class ConnectivityActionReceiver extends BroadcastReceiver {
         //    (currently are silently moved to FAILED state)
     }
 
-    /**
+
 
     static public void enableActionReceiver(Context context) {
         PackageManager pm = context.getPackageManager();
