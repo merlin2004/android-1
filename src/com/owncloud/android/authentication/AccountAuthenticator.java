@@ -297,23 +297,4 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator {
                     "Unsupported auth token type");
         }
     }
-
-    public static class UnsupportedFeaturesException extends
-            AuthenticatorException {
-        public static final long serialVersionUID = 1L;
-
-        public UnsupportedFeaturesException() {
-            super(AccountManager.ERROR_CODE_UNSUPPORTED_OPERATION,
-                    "Unsupported features");
-        }
-    }
-
-    public static class AccessDeniedException extends AuthenticatorException {
-        public AccessDeniedException(int code, String errorMsg) {
-            super(AccountManager.ERROR_CODE_INVALID_RESPONSE, "Access Denied");
-        }
-
-        private static final long serialVersionUID = 1L;
-
-    }
 }

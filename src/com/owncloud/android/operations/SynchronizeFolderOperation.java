@@ -154,9 +154,8 @@ public class SynchronizeFolderOperation extends SyncOperation {
                 }
                 
                 if (result.isSuccess()) {
-                    syncContents(client);
+                    syncContents();
                 }
-
             }
             
             if (mCancellationRequested.get()) {
@@ -168,15 +167,13 @@ public class SynchronizeFolderOperation extends SyncOperation {
         }
 
         return result;
-
     }
 
-    private RemoteOperationResult checkForChanges(OwnCloudClient client)
-            throws OperationCancelledException {
+    private RemoteOperationResult checkForChanges(OwnCloudClient client) throws OperationCancelledException {
         Log_OC.d(TAG, "Checking changes in " + mAccount.name + mRemotePath);
 
         mRemoteFolderChanged = true;
-        RemoteOperationResult result = null;
+        RemoteOperationResult result;
         
         if (mCancellationRequested.get()) {
             throw new OperationCancelledException();
@@ -185,12 +182,11 @@ public class SynchronizeFolderOperation extends SyncOperation {
         // remote request
         ReadRemoteFileOperation operation = new ReadRemoteFileOperation(mRemotePath);
         result = operation.execute(client);
-        if (result.isSuccess()){
+        if (result.isSuccess()) {
             OCFile remoteFolder = FileStorageUtils.fillOCFile((RemoteFile) result.getData().get(0));
 
             // check if remote and local folder are different
-            mRemoteFolderChanged =
-                        !(remoteFolder.getEtag().equalsIgnoreCase(mLocalFolder.getEtag()));
+            mRemoteFolderChanged = !(remoteFolder.getEtag().equalsIgnoreCase(mLocalFolder.getEtag()));
 
             result = new RemoteOperationResult(ResultCode.OK);
 
@@ -216,8 +212,7 @@ public class SynchronizeFolderOperation extends SyncOperation {
     }
 
 
-    private RemoteOperationResult fetchAndSyncRemoteFolder(OwnCloudClient client)
-            throws OperationCancelledException {
+    private RemoteOperationResult fetchAndSyncRemoteFolder(OwnCloudClient client) throws OperationCancelledException {
         if (mCancellationRequested.get()) {
             throw new OperationCancelledException();
         }
@@ -227,7 +222,7 @@ public class SynchronizeFolderOperation extends SyncOperation {
         Log_OC.d(TAG, "Synchronizing " + mAccount.name + mRemotePath);
 
         if (result.isSuccess()) {
-            synchronizeData(result.getData(), client);
+            synchronizeData(result.getData());
             if (mConflictsFound > 0  || mFailsInFileSyncsFound > 0) {
                 result = new RemoteOperationResult(ResultCode.SYNC_CONFLICT);
                     // should be a different result code, but will do the job
@@ -237,7 +232,6 @@ public class SynchronizeFolderOperation extends SyncOperation {
                 removeLocalFolder();
             }
         }
-        
 
         return result;
     }
@@ -260,18 +254,14 @@ public class SynchronizeFolderOperation extends SyncOperation {
 
 
     /**
-     *  Synchronizes the data retrieved from the server about the contents of the target folder
-     *  with the current data in the local database.
+     * Synchronizes the data retrieved from the server about the contents of the target folder
+     * with the current data in the local database.
      *
-     *  Grants that mChildren is updated with fresh data after execution.
+     * Grants that mChildren is updated with fresh data after execution.
      *
-     *  @param folderAndFiles   Remote folder and children files in Folder
-     *
-     *  @param client           Client instance to the remote server where the data were
-     *                          retrieved.
-     *  @return                 'True' when any change was made in the local data, 'false' otherwise
+     * @param folderAndFiles Remote folder and children files in Folder
      */
-    private void synchronizeData(ArrayList<Object> folderAndFiles, OwnCloudClient client)
+    private void synchronizeData(ArrayList<Object> folderAndFiles)
             throws OperationCancelledException {
         FileDataStorageManager storageManager = getStorageManager();
         
@@ -283,7 +273,7 @@ public class SynchronizeFolderOperation extends SyncOperation {
         Log_OC.d(TAG, "Remote folder " + mLocalFolder.getRemotePath()
                 + " changed - starting update of local data ");
 
-        List<OCFile> updatedFiles = new Vector<OCFile>(folderAndFiles.size() - 1);
+        List<OCFile> updatedFiles = new Vector<>(folderAndFiles.size() - 1);
         mFilesForDirectDownload.clear();
         mFilesToSyncContents.clear();
 
@@ -293,7 +283,7 @@ public class SynchronizeFolderOperation extends SyncOperation {
 
         // get current data about local contents of the folder to synchronize
         List<OCFile> localFiles = storageManager.getFolderContent(mLocalFolder, false);
-        Map<String, OCFile> localFilesMap = new HashMap<String, OCFile>(localFiles.size());
+        Map<String, OCFile> localFilesMap = new HashMap<>(localFiles.size());
         for (OCFile file : localFiles) {
             localFilesMap.put(file.getRemotePath(), file);
         }
@@ -415,9 +405,9 @@ public class SynchronizeFolderOperation extends SyncOperation {
     }
 
 
-    private void syncContents(OwnCloudClient client) throws OperationCancelledException {
+    private void syncContents() throws OperationCancelledException {
         startDirectDownloads();
-        startContentSynchronizations(mFilesToSyncContents, client);
+        startContentSynchronizations(mFilesToSyncContents);
     }
 
     
@@ -439,18 +429,15 @@ public class SynchronizeFolderOperation extends SyncOperation {
      * Performs a list of synchronization operations, determining if a download or upload is needed
      * or if exists conflict due to changes both in local and remote contents of the each file.
      *
-     * If download or upload is needed, request the operation to the corresponding service and goes
-     * on.
+     * If download or upload is needed, request the operation to the corresponding service and goes on.
      *
      * @param filesToSyncContents       Synchronization operations to execute.
-     * @param client                    Interface to the remote ownCloud server.
      */
-    private void startContentSynchronizations(List<SyncOperation> filesToSyncContents,
-                                              OwnCloudClient client)
+    private void startContentSynchronizations(List<SyncOperation> filesToSyncContents)
             throws OperationCancelledException {
 
         Log_OC.v(TAG, "Starting content synchronization... ");
-        RemoteOperationResult contentsResult = null;
+        RemoteOperationResult contentsResult;
         for (SyncOperation op: filesToSyncContents) {
             if (mCancellationRequested.get()) {
                 throw new OperationCancelledException();

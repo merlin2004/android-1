@@ -21,10 +21,8 @@
 package com.owncloud.android.files.services;
 
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -51,7 +49,7 @@ public class ConnectivityActionReceiver extends BroadcastReceiver {
     /**
      * Magic keyword, by Google.
      *
-     * {@See http://developer.android.com/intl/es/reference/android/net/wifi/WifiInfo.html#getSSID()}
+     * {@see http://developer.android.com/intl/es/reference/android/net/wifi/WifiInfo.html#getSSID()}
      */
     private static final String UNKNOWN_SSID = "<unknown ssid>";
 
@@ -192,7 +190,7 @@ public class ConnectivityActionReceiver extends BroadcastReceiver {
         }
     }
 
-    private void wifiDisconnected(Context context) {
+    private void wifiDisconnected() {
         // TODO something smart
 
         // NOTE: explicit cancellation of only-wifi instant uploads is not needed anymore, since currently:
@@ -203,6 +201,7 @@ public class ConnectivityActionReceiver extends BroadcastReceiver {
         //    (currently are silently moved to FAILED state)
     }
 
+    /**
 
     static public void enableActionReceiver(Context context) {
         PackageManager pm = context.getPackageManager();
@@ -218,5 +217,5 @@ public class ConnectivityActionReceiver extends BroadcastReceiver {
                 PackageManager.DONT_KILL_APP);
     }
 
-
+    */
 }
